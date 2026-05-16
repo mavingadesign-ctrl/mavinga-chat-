@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mavinga's IA — Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #080810;
+    --white: #F5F4EF;
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-dim: rgba(201,168,76,0.12);
+    --gray: #9A9A9A;
+    --card: #0F0F1A;
+    --border: rgba(201,168,76,0.2);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    display: flex; flex-direction: column;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,16,0.95);
+    backdrop-filter: blur(20px);
+    flex-shrink: 0;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
+  .logo-text span { color: var(--gold); }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--gray); }
+  .status-dot { width: 8px; height: 8px; background: #27C93F; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(39,201,63,0.4);}50%{opacity:0.8;box-shadow:0 0 0 4px rgba(39,201,63,0);} }
+  .plan-badge { background: var(--gold-dim); border: 1px solid var(--border); color: var(--gold); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .chat-container { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; position: relative; z-index: 1; }
+  .chat-container::-webkit-scrollbar { width: 4px; }
+  .chat-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .welcome { text-align: center; padding: 40px 20px; animation: fadeUp 0.6s ease both; }
+  .welcome-icon { width: 64px; height: 64px; background: var(--gold); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 20px; }
+  .welcome h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; margin-bottom: 8px; }
+  .welcome h1 span { color: var(--gold); }
+  .welcome p { color: var(--gray); font-size: 0.95rem; line-height: 1.6; max-width: 400px; margin: 0 auto 28px; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 500px; margin: 0 auto; }
+  .suggestion { background: var(--card); border: 1px solid var(--border); color: var(--white); padding: 8px 16px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .suggestion:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+  .message { display: flex; gap: 12px; animation: fadeUp 0.3s ease both; max-width: 800px; }
+  .message.user { flex-direction: row-reverse; margin-left: auto; }
+  .message.assistant { margin-right: auto; }
+  .avatar { width: 32px; height: 32px; min-width: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+  .avatar.ai { background: var(--gold); color: var(--black); font-weight: 700; }
+  .avatar.user { background: var(--card); border: 1px solid var(--border); }
+  .bubble { padding: 12px 16px; border-radius: 12px; font-size: 0.92rem; line-height: 1.65; max-width: 100%; }
+  .message.user .bubble { background: var(--gold); color: var(--black); border-radius: 12px 4px 12px 12px; font-weight: 500; }
+  .message.assistant .bubble { background: var(--card); border: 1px solid var(--border); color: var(--white); border-radius: 4px 12px 12px 12px; }
+  .bubble strong { color: var(--gold-light); }
+  .bubble code { background: rgba(201,168,76,0.15); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: var(--gold-light); }
+  .bubble p { margin: 6px 0; }
+  .bubble ul, .bubble ol { padding-left: 20px; margin: 8px 0; }
+  .bubble li { margin: 4px 0; }
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-indicator span { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: typing 1.2s infinite; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%,60%,100%{transform:translateY(0);opacity:0.4;}30%{transform:translateY(-6px);opacity:1;} }
+  .input-area { position: relative; z-index: 10; padding: 16px 24px 24px; border-top: 1px solid var(--border); background: rgba(8,8,16,0.95); backdrop-filter: blur(20px); flex-shrink: 0; }
+  .input-wrapper { display: flex; align-items: flex-end; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; transition: border-color 0.2s; }
+  .input-wrapper:focus-within { border-color: var(--gold); }
+  textarea { flex: 1; background: transparent; border: none; outline: none; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 0.92rem; line-height: 1.5; resize: none; max-height: 120px; min-height: 24px; }
+  textarea::placeholder { color: var(--gray); }
+  .send-btn { width: 36px; height: 36px; min-width: 36px; background: var(--gold); border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: var(--black); }
+  .send-btn:hover { background: var(--gold-light); transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .input-hint { text-align: center; font-size: 0.75rem; color: rgba(154,154,154,0.5); margin-top: 8px; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);} }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">Mavinga<span>'s IA</span></div>
+  </div>
+  <div class="status"><div class="status-dot"></div>En ligne</div>
+  <div class="plan-badge">PRO</div>
+</header>
+
+<div class="chat-container" id="chatContainer">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">🤖</div>
+    <h1>Bonjour ! Je suis <span>Mavinga's IA</span></h1>
+    <p>Votre expert en automatisation. Je connecte vos outils, élimine vos tâches répétitives et fais tourner votre business automatiquement.</p>
+    <div class="suggestions">
+      <button class="suggestion" onclick="sendSuggestion(this)">⚡ Automatiser mes emails</button>
+      <button class="suggestion" onclick="sendSuggestion(this)">📊 Créer un rapport automatique</button>
+      <button class="suggestion" onclick="sendSuggestion(this)">🔄 Connecter mes outils</button>
+      <button class="suggestion" onclick="sendSuggestion(this)">💰 Automatiser ma facturation</button>
+      <button class="suggestion" onclick="sendSuggestion(this)">🎯 Qualifier mes leads</button>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrapper">
+    <textarea id="userInput" placeholder="Décrivez votre tâche répétitive..." rows="1"
+      onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M14 2L7 9M14 2L10 14L7 9M14 2L2 6L7 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <p class="input-hint">Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</p>
+</div>
+
+<script>
+const API_KEY = "AIzaSyAivOZGkYTkPmjBC64NHrv-zXFVcZVtrDc";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+const SYSTEM_PROMPT = `Tu es Mavinga's IA, un agent expert en automatisation ultra-performant, autonome et proactif, créé par Mavinga Design.
+
+Objectif : Aider les entreprises et particuliers à gagner du temps en automatisant leurs tâches répétitives via Zapier, Make.com et autres outils.
+
+Domaines d'expertise :
+- Finance et Comptabilité (facturation, relances, rapprochements, notes de frais)
+- Excel et Google Sheets (nettoyage, automatisation, tableaux de bord, formules)
+- Reporting automatique, Gestion de leads et CRM
+- Administration, suivi clients et fournisseurs
+- Centralisation de données
+
+Règles strictes :
+- Réponds TOUJOURS en français
+- Sois concret, direct et orienté résultats
+- Propose immédiatement 2-3 solutions concrètes avec les outils
+- Mentionne toujours le gain de temps estimé
+- Ton professionnel, bienveillant et rassurant
+- Maximum 2 questions à la fois`;
+
+let messages = [];
+let isLoading = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function sendSuggestion(btn) {
+  document.getElementById('userInput').value = btn.textContent.trim();
+  sendMessage();
+}
+
+function formatMessage(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>').replace(/$/, '</p>');
+}
+
+function addMessage(role, content) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  const container = document.getElementById('chatContainer');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role === 'assistant' ? 'ai' : 'user'}`;
+  avatar.textContent = role === 'assistant' ? '🤖' : '👤';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = role === 'assistant' ? formatMessage(content) : content;
+  div.appendChild(avatar); div.appendChild(bubble);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  const container = document.getElementById('chatContainer');
+  const div = document.createElement('div');
+  div.className = 'message assistant'; div.id = 'typing';
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar ai'; avatar.textContent = '🤖';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+  div.appendChild(avatar); div.appendChild(bubble);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+  isLoading = true; sendBtn.disabled = true;
+  input.value = ''; input.style.height = 'auto';
+  addMessage('user', text);
+  messages.push({ role: 'user', parts: [{ text }] });
+  showTyping();
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: messages
+      })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu traiter votre demande.";
+    messages.push({ role: 'model', parts: [{ text: reply }] });
+    addMessage('assistant', reply);
+  } catch(err) {
+    removeTyping();
+    addMessage('assistant', "⚠️ Une erreur s'est produite. Vérifiez votre connexion et réessayez.");
+  }
+  isLoading = false; sendBtn.disabled = false; input.focus();
+}
+</script>
+
+</body>
+</html>
