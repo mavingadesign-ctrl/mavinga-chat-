@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -19,27 +18,9 @@
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
-  body {
-    background: var(--black);
-    color: var(--white);
-    font-family: 'DM Sans', sans-serif;
-    display: flex; flex-direction: column;
-  }
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%);
-    pointer-events: none; z-index: 0;
-  }
-  header {
-    position: relative; z-index: 10;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(8,8,16,0.95);
-    backdrop-filter: blur(20px);
-    flex-shrink: 0;
-  }
+  body { background: var(--black); color: var(--white); font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: rgba(8,8,16,0.95); backdrop-filter: blur(20px); flex-shrink: 0; }
   .logo { display: flex; align-items: center; gap: 10px; }
   .logo-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
   .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; }
@@ -129,9 +110,6 @@
 </div>
 
 <script>
-const API_KEY = "AIzaSyAivOZGkYTkPmjBC64NHrv-zXFVcZVtrDc";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
-
 const SYSTEM_PROMPT = `Tu es Mavinga's IA, un agent expert en automatisation ultra-performant, autonome et proactif, créé par Mavinga Design.
 
 Objectif : Aider les entreprises et particuliers à gagner du temps en automatisant leurs tâches répétitives via Zapier, Make.com et autres outils.
@@ -149,7 +127,8 @@ Règles strictes :
 - Propose immédiatement 2-3 solutions concrètes avec les outils
 - Mentionne toujours le gain de temps estimé
 - Ton professionnel, bienveillant et rassurant
-- Maximum 2 questions à la fois`;
+- Maximum 2 questions à la fois
+- Tu t'appelles Mavinga's IA, créé par Mavinga Design`;
 
 let messages = [];
 let isLoading = false;
@@ -223,21 +202,18 @@ async function sendMessage() {
   isLoading = true; sendBtn.disabled = true;
   input.value = ''; input.style.height = 'auto';
   addMessage('user', text);
-  messages.push({ role: 'user', parts: [{ text }] });
+  messages.push({ role: 'user', content: text });
   showTyping();
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: messages
-      })
+      body: JSON.stringify({ messages, system: SYSTEM_PROMPT })
     });
     const data = await res.json();
     removeTyping();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu traiter votre demande.";
-    messages.push({ role: 'model', parts: [{ text: reply }] });
+    const reply = data.reply || "Désolé, je n'ai pas pu traiter votre demande.";
+    messages.push({ role: 'assistant', content: reply });
     addMessage('assistant', reply);
   } catch(err) {
     removeTyping();
@@ -246,6 +222,5 @@ async function sendMessage() {
   isLoading = false; sendBtn.disabled = false; input.focus();
 }
 </script>
-
 </body>
 </html>
